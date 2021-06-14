@@ -51,7 +51,6 @@ static struct delayed_work prim_panel_work;
 static atomic_t prim_panel_is_on;
 static struct wakeup_source prim_panel_wakelock;
 
-struct msm_drm_notifier g_notify_data;
 extern char *saved_command_line;
 #endif
 
@@ -192,6 +191,7 @@ static void dsi_bridge_pre_enable(struct drm_bridge *bridge)
 #ifdef CONFIG_MACH_XIAOMI_MOJITO
 	struct drm_device *dev = bridge->dev;
 	int event = 0;
+	struct msm_drm_notifier notify_data;
 
 	/* add for thermal begin */
 	if (dev->doze_state == MSM_DRM_BLANK_POWERDOWN) {
@@ -199,7 +199,7 @@ static void dsi_bridge_pre_enable(struct drm_bridge *bridge)
 		pr_err("%s power on from power off\n", __func__);
 	}
 	event = dev->doze_state;
-	g_notify_data.data = &event;
+	notify_data.data = &event;
 	/* add for thermal end */
 #endif
 
@@ -223,7 +223,7 @@ static void dsi_bridge_pre_enable(struct drm_bridge *bridge)
 	}
 
 	/* add for thermal begin */
-	msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &g_notify_data);
+	msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &notify_data);
 	/* add for thermal end */	
 #endif
 
@@ -263,7 +263,7 @@ static void dsi_bridge_pre_enable(struct drm_bridge *bridge)
 
 #ifdef CONFIG_MACH_XIAOMI_MOJITO
 	/* add for thermal begin */
-	msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &g_notify_data);
+	msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &notify_data);
 	/* add for thermal end */
 #endif
 
@@ -510,6 +510,7 @@ static void dsi_bridge_post_disable(struct drm_bridge *bridge)
 	struct dsi_bridge *c_bridge = to_dsi_bridge(bridge);
 #ifdef CONFIG_MACH_XIAOMI_MOJITO
 	struct drm_device *dev = bridge->dev;
+	struct msm_drm_notifier notify_data;
 	int event = 0;
 
 	/* add for thermal begin */
@@ -518,7 +519,7 @@ static void dsi_bridge_post_disable(struct drm_bridge *bridge)
 		pr_err("%s wrong doze state\n", __func__);
 	}
 	event = dev->doze_state;
-	g_notify_data.data = &event;
+	notify_data.data = &event;
 	/* add for thermal end */	
 #endif
 
@@ -529,7 +530,7 @@ static void dsi_bridge_post_disable(struct drm_bridge *bridge)
 
 #ifdef CONFIG_MACH_XIAOMI_MOJITO
 	/* add for thermal begin */
-	msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &g_notify_data);
+	msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &notify_data);
 	/* add for thermal end */
 #endif
 
@@ -555,7 +556,7 @@ static void dsi_bridge_post_disable(struct drm_bridge *bridge)
 
 #ifdef CONFIG_MACH_XIAOMI_MOJITO
 	/* add for thermal begin */
-	msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &g_notify_data);
+	msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &notify_data);
 	/* add for thermal end */
 
 	if (c_bridge->display->is_prim_display)
