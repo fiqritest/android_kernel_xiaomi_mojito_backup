@@ -34,6 +34,7 @@
 #include <linux/devfreq_boost.h>
 #include <linux/pm_qos.h>
 #include <linux/sync_file.h>
+#include <linux/kprofiles.h>
 
 #include "drm_crtc_internal.h"
 
@@ -2251,11 +2252,18 @@ static int __drm_mode_atomic_ioctl(struct drm_device *dev, void *data,
 		return -EINVAL;
 
 	if (!(arg->flags & DRM_MODE_ATOMIC_TEST_ONLY)) {
-		if (cpu_input_boost_within_input(3250))
-			cpu_input_boost_kick();
+		if ((active_mode() == 2) || (active_mode() == 0)) {
+			if (cpu_input_boost_within_input(3250))
+				cpu_input_boost_kick();
 
-		if (df_boost_within_input(3250))
-			devfreq_boost_kick(DEVFREQ_CPU_LLCC_DDR_BW);
+			if (df_boost_within_input(3250))
+				devfreq_boost_kick(DEVFREQ_CPU_LLCC_DDR_BW);
+		} else if (active_mode() == 3) {
+			cpu_input_boost_kick_max(50);
+			devfreq_boost_kick_max(DEVFREQ_CPU_LLCC_DDR_BW, 50);
+		} else {
+			pr_info("Battery profile detected! Skipping CPU & DDR bus boosts\n");
+		}
 	}
 
 	drm_modeset_acquire_init(&ctx, 0);
