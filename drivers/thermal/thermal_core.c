@@ -1912,25 +1912,21 @@ static void destroy_thermal_message_node(void)
 #if defined(CONFIG_DRM) && defined(CONFIG_MACH_XIAOMI_MOJITO)
 static int screen_state_for_thermal_callback(struct notifier_block *nb, unsigned long val, void *data)
 {
-	struct drm_notify_data *evdata = data;
+	struct msm_drm_notifier *evdata = data;
 	unsigned int blank;
 
-	if (val != DRM_EVENT_BLANK || !evdata || !evdata->data)
+	if (val != MSM_DRM_EVENT_BLANK || !evdata || !evdata->data)
 		return 0;
 
 	blank = *(int *)(evdata->data);
 	switch (blank) {
-	case DRM_BLANK_LP1:
-		pr_warn("%s: DRM_BLANK_LP1\n", __func__);
-	case DRM_BLANK_LP2:
-		pr_warn("%s: DRM_BLANK_LP2\n", __func__);
-	case DRM_BLANK_POWERDOWN:
+	case MSM_DRM_BLANK_POWERDOWN:
 		sm.screen_state = 0;
-		pr_warn("%s: DRM_BLANK_POWERDOWN\n", __func__);
+		pr_warn("%s: MSM_DRM_BLANK_POWERDOWN\n", __func__);
 		break;
-	case DRM_BLANK_UNBLANK:
+	case MSM_DRM_BLANK_UNBLANK:
 		sm.screen_state = 1;
-		pr_warn("%s: DRM_BLANK_UNBLANK\n", __func__);
+		pr_warn("%s: MSM_DRM_BLANK_UNBLANK\n", __func__);
 		break;
 	default:
 		break;
@@ -2051,7 +2047,7 @@ static int __init thermal_init(void)
 #endif
 #if defined(CONFIG_DRM) && defined(CONFIG_MACH_XIAOMI_MOJITO)
 	sm.thermal_notifier.notifier_call = screen_state_for_thermal_callback;
-	if (drm_register_client(&sm.thermal_notifier) < 0) {
+	if (msm_drm_register_client(&sm.thermal_notifier) < 0) {
 		pr_warn("Thermal: register screen state callback failed\n");
 	}
 	/* add for thermal end */
@@ -2085,7 +2081,7 @@ static void thermal_exit(void)
 #endif /* CONFIG_THERMAL_SWITCH */
 
 #if defined(CONFIG_DRM) && defined(CONFIG_MACH_XIAOMI_MOJITO)
-	drm_unregister_client(&sm.thermal_notifier);
+	msm_drm_unregister_client(&sm.thermal_notifier);
 #endif
 
 	unregister_pm_notifier(&thermal_pm_nb);
