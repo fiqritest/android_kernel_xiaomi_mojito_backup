@@ -77,10 +77,10 @@ static int qpnp_vibrator_play_on(struct vib_pwm_chip *chip)
 	struct pwm_state pstate;
 	int err;
 
-	printk("vib---qpnp_vibrator_play_on\n");
+	pr_debug("vib---qpnp_vibrator_play_on\n");
 
 	if (chip->pwm_dev == NULL) {
-		printk("vib---exit---qpnp_vibrator_play_on\n");
+		pr_debug("vib---exit---qpnp_vibrator_play_on\n");
 		return -ENOMEM;
 	}
 
@@ -102,18 +102,18 @@ static int qpnp_vibrator_play_on(struct vib_pwm_chip *chip)
 		pstate.duty_cycle = 42500;
 	}
 
-	printk("vib---pstate.period=%d\n", pstate.period);
-	printk("vib---pstate.duty_cycle=%d\n", pstate.duty_cycle);
+	pr_debug("vib---pstate.period=%d\n", pstate.period);
+	pr_debug("vib---pstate.duty_cycle=%d\n", pstate.duty_cycle);
 
 	if (gpio_is_valid(chip->en_gpio)) {
 		err = gpio_direction_output(chip->en_gpio, 1);
 		if (err)
-			pr_err("vib---en fail, ret=%d\n", err);
+			pr_debug("vib---en fail, ret=%d\n", err);
 	}
 
 	err = pwm_apply_state(chip->pwm_dev, &pstate);
 	if (err) {
-		printk("vib---Apply PWM state for vib failed, err=%d\n", err);
+		pr_debug("vib---Apply PWM state for vib failed, err=%d\n", err);
 	}
 
 	return err;
@@ -125,10 +125,10 @@ static int qpnp_vibrator_play_off(struct vib_pwm_chip *chip)
 	struct pwm_state pstate;
 	int err;
 
-	printk("vib---qpnp_vibrator_play_off\n");
+	pr_debug("vib---qpnp_vibrator_play_off\n");
 
 	if (chip->pwm_dev == NULL) {
-		printk("vib---exit---qpnp_vibrator_play_on\n");
+		pr_debug("vib---exit---qpnp_vibrator_play_on\n");
 		return -ENOMEM;
 	}
 
@@ -140,12 +140,12 @@ static int qpnp_vibrator_play_off(struct vib_pwm_chip *chip)
 	if (gpio_is_valid(chip->en_gpio)) {
 		err = gpio_direction_output(chip->en_gpio, 0);
 		if (err)
-			pr_err("vib---en fail, ret=%d\n", err);
+			pr_debug("vib---en fail, ret=%d\n", err);
 	}
 
 	err = pwm_apply_state(chip->pwm_dev, &pstate);
 	if (err) {
-		printk("vib---Apply PWM state for vib failed, err=%d\n", err);
+		pr_debug("vib---Apply PWM state for vib failed, err=%d\n", err);
 	}
 
 	return err;
@@ -173,7 +173,7 @@ static void qpnp_vib_work(struct work_struct *work)
 			} else {
 				en_time = chip->vib_play_ms;
 			}
-			printk("vib---en_time=%d\n", en_time);
+			pr_debug("vib---en_time=%d\n", en_time);
 			hrtimer_start(&chip->stop_timer,
 				      ms_to_ktime(en_time),
 				      HRTIMER_MODE_REL);
@@ -274,7 +274,7 @@ static ssize_t qpnp_vib_store_duration(struct device *dev,
 	if (val <= 0)
 		return count;
 
-	printk("vib---qpnp_vib_store_duration---val=%d\n", val);
+	pr_debug("vib---qpnp_vib_store_duration---val=%d\n", val);
 	mutex_lock(&chip->lock);
 	if (val < 40) {
 		chip->effect_idx = 1; //short vib 1
@@ -307,7 +307,7 @@ static ssize_t qpnp_vib_store_activate(struct device *dev,
 	u32 val;
 	int ret;
 
-	printk("vib---qpnp_vib_store_activate\n");
+	pr_debug("vib---qpnp_vib_store_activate\n");
 	ret = kstrtouint(buf, 0, &val);
 	if (ret < 0)
 		return ret;
@@ -318,7 +318,7 @@ static ssize_t qpnp_vib_store_activate(struct device *dev,
 	mutex_lock(&chip->lock);
 	hrtimer_cancel(&chip->stop_timer);
 	chip->state = val;
-	printk("vib---state = %d, time = %llums\n", chip->state, chip->vib_play_ms);
+	pr_debug("vib---state = %d, time = %llums\n", chip->state, chip->vib_play_ms);
 	mutex_unlock(&chip->lock);
 	schedule_work(&chip->vib_work);
 
@@ -374,7 +374,7 @@ static int qpnp_vib_parse_dt(struct vib_pwm_chip *chip)
 	}
 
 	chip->en_gpio = of_get_named_gpio_flags(node, "vib,en-gpio", 0, &chip->en_gpio_flags);
-	printk("vib---vib,en-gpio=%d\n", chip->en_gpio);
+	pr_debug("vib---vib,en-gpio=%d\n", chip->en_gpio);
 
 	for_each_available_child_of_node(node, child_node) {
 		rc = of_property_read_u32(child_node, "pwm-sources", &id);
@@ -385,7 +385,7 @@ static int qpnp_vib_parse_dt(struct vib_pwm_chip *chip)
 
 		chip->id = id;
 		chip->label = of_get_property(child_node, "label", NULL) ? : child_node->name;
-		printk("chip->label=%s ", chip->label);
+		pr_debug("chip->label=%s ", chip->label);
 
 		chip->pwm_dev = devm_of_pwm_get(chip->dev, child_node, NULL);
 		if (IS_ERR(chip->pwm_dev)) {
@@ -405,7 +405,7 @@ static int qpnp_vibrator_pwm_probe(struct platform_device *pdev)
 	int i, ret;
 	u32 base;
 
-	pr_err("vib---qpnp_vibrator_pwm_probe\n");
+	pr_debug("vib---qpnp_vibrator_pwm_probe\n");
 
 	chip = devm_kzalloc(&pdev->dev, sizeof(*chip), GFP_KERNEL);
 	if (!chip)
@@ -415,7 +415,7 @@ static int qpnp_vibrator_pwm_probe(struct platform_device *pdev)
 
 	ret = qpnp_vib_parse_dt(chip);
 	if (ret < 0) {
-		pr_err("vib---couldn't parse device tree, ret=%d\n", ret);
+		pr_debug("vib---couldn't parse device tree, ret=%d\n", ret);
 		return ret;
 	}
 
@@ -437,7 +437,7 @@ static int qpnp_vibrator_pwm_probe(struct platform_device *pdev)
 	chip->cdev.max_brightness = 100;
 	ret = devm_led_classdev_register(&pdev->dev, &chip->cdev);
 	if (ret < 0) {
-		pr_err("vib---Error in registering led class device, ret=%d\n", ret);
+		pr_debug("vib---Error in registering led class device, ret=%d\n", ret);
 		goto fail;
 	}
 
@@ -451,7 +451,7 @@ static int qpnp_vibrator_pwm_probe(struct platform_device *pdev)
 		}
 	}
 
-	printk("vib---Vibrator PWM successfully registered: overdrive = %s\n",
+	pr_debug("vib---Vibrator PWM successfully registered: overdrive = %s\n",
 		chip->disable_overdrive ? "disabled" : "enabled");
 	return 0;
 
@@ -469,7 +469,7 @@ static int qpnp_vibrator_pwm_remove(struct platform_device *pdev)
 {
 	struct vib_pwm_chip *chip = dev_get_drvdata(&pdev->dev);
 
-	pr_err("vib---qpnp_vibrator_pwm_remove\n");
+	pr_debug("vib---qpnp_vibrator_pwm_remove\n");
 	if (!chip->disable_overdrive) {
 		hrtimer_cancel(&chip->overdrive_timer);
 		cancel_work_sync(&chip->overdrive_work);
