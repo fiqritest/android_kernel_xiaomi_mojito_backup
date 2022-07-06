@@ -19,7 +19,6 @@ export ARCH=arm64
 export SUBARCH=arm64
 export KBUILD_BUILD_VERSION="1"
 export KBUILD_BUILD_USER="FiqriArdyansyah"
-export KBUILD_BUILD_HOST="DroneCI"
 
 # Set environment for telegram
 export CHATID="-1001428085807"
@@ -52,6 +51,20 @@ KERVER=$(make kernelversion)
 
 # Get last commit
 COMMIT_HEAD=$(git log --oneline -1)
+
+# Check if we are using a dedicated CI (Continuous Integration) 
+# and set KBUILD_BUILD_HOST
+
+# Check for CI
+if [[ "$CI" ]]; then
+	if [[ "$DRONE" ]]; then
+		export KBUILD_BUILD_HOST=$DRONE_SYSTEM_HOST
+	else
+		echo "Use default build host name"
+	fi
+else
+	echo "Use default build host name"
+fi
 
 # Set function for telegram
 tg_post_msg() {
