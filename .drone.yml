@@ -5,7 +5,7 @@ kind: pipeline
 name: STRIX kernel
 steps:
   - name: compile
-    image: panchajanya1999/archlinux:latest
+    image: fadlyas/kernel_dockerfile:latest
     commands:
       - bash build.sh
     environment: 
