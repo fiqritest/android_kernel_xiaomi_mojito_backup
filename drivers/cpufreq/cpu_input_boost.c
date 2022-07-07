@@ -14,6 +14,7 @@
 #include <linux/slab.h>
 #include <linux/moduleparam.h>
 #include <uapi/linux/sched/types.h>
+#include <linux/kprofiles.h>
 
 static unsigned int input_boost_freq_lp __read_mostly =
 	CONFIG_INPUT_BOOST_FREQ_LP;
@@ -118,7 +119,7 @@ bool cpu_input_boost_within_input(unsigned long timeout_ms)
 
 static void __cpu_input_boost_kick(struct boost_drv *b)
 {
-	if (test_bit(SCREEN_OFF, &b->state))
+	if ((test_bit(SCREEN_OFF, &b->state)) || (active_mode() == 1))
 		return;
 
 	set_bit(INPUT_BOOST, &b->state);
@@ -140,7 +141,7 @@ static void __cpu_input_boost_kick_max(struct boost_drv *b,
 	unsigned long boost_jiffies = msecs_to_jiffies(duration_ms);
 	unsigned long curr_expires, new_expires;
 
-	if (test_bit(SCREEN_OFF, &b->state))
+	if ((test_bit(SCREEN_OFF, &b->state)) || (active_mode() == 1))
 		return;
 
 	do {
