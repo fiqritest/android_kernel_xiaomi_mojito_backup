@@ -684,7 +684,7 @@ int cam_sensor_match_id(struct cam_sensor_ctrl_t *s_ctrl)
 }
 
 #ifdef CONFIG_MACH_XIAOMI_MOJITO
-static uint32_t g_operation_mode; /* xulei16 add for face unlock */
+uint32_t operation_mode; /* xulei16 add for face unlock */
 #endif
 
 int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
@@ -876,8 +876,8 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 		}
 
 #ifdef CONFIG_MACH_XIAOMI_MOJITO
-		g_operation_mode = sensor_acq_dev.operation_mode; /* xulei16 add for faceunlock */
-		CAM_DBG(CAM_SENSOR, "operation_mode:%d", g_operation_mode);
+		operation_mode = sensor_acq_dev.operation_mode; /* xulei16 add for faceunlock */
+		CAM_DBG(CAM_SENSOR, "operation_mode:%d", operation_mode);
 #endif
 
 		bridge_params.session_hdl = sensor_acq_dev.session_handle;
@@ -1161,7 +1161,7 @@ int cam_sensor_publish_dev_info(struct cam_req_mgr_device_info *info)
 	info->trigger = CAM_TRIGGER_POINT_SOF;
 
 #ifdef CONFIG_MACH_XIAOMI_MOJITO
-	if (g_operation_mode == 0x8006) /* xulei16 add for face unlock */
+	if (operation_mode == 0x8006) /* xulei16 add for face unlock */
 		info->p_delay = 0;
 #endif
 	return rc;

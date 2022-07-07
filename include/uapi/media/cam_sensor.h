@@ -371,7 +371,7 @@ struct cam_sensor_acquire_dev {
 	uint32_t    reserved;
 	uint64_t    info_handle;
 #ifdef CONFIG_MACH_XIAOMI_MOJITO
-    uint32_t    operation_mode; /* xulei16 add for face unlock */
+	uint32_t    operation_mode; /* xulei16 add for face unlock */
 #endif
 } __attribute__((packed));
 
