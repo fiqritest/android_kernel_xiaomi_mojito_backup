@@ -508,9 +508,6 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(verify_model_name),
 	POWER_SUPPLY_ATTR(chip_ok),
 #endif
-#ifdef CONFIG_REVERSE_CHARGE
-	POWER_SUPPLY_ATTR(reverse_charge_mode),
-#endif
 	POWER_SUPPLY_ATTR(charge_awske_state),
 #else
 #ifdef CONFIG_BATT_VERIFY_BY_DS28E16

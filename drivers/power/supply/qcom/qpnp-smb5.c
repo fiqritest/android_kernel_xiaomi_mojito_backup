@@ -23,10 +23,6 @@
 #include <linux/qpnp/qpnp-revid.h>
 #include <linux/regulator/driver.h>
 #include <linux/regulator/of_regulator.h>
-#ifdef CONFIG_REVERSE_CHARGE
-#include <linux/of_gpio.h>
-#include <linux/gpio.h>
-#endif
 #include <linux/regulator/machine.h>
 #include <linux/iio/consumer.h>
 #include <linux/pmic-voter.h>
@@ -611,14 +607,6 @@ static int smb5_parse_dt(struct smb5 *chip)
 			return rc;
 		}
 	}
-
-#ifdef CONFIG_REVERSE_CHARGE
-	chg->switch_sel_gpio = of_get_named_gpio(node, "mi,swithc-sel-gpio", 0);
-	if (!gpio_is_valid(chg->switch_sel_gpio)) {
-		pr_err("switch sel gpio error getting from OF node\n");
-		chg->switch_sel_gpio = -EINVAL;
-	}
-#endif
 
 	rc = of_property_read_u32(node, "qcom,charger-temp-max",
 			&chg->charger_temp_max);
@@ -1849,9 +1837,6 @@ static enum power_supply_property smb5_batt_props[] = {
 	POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL,
 	POWER_SUPPLY_PROP_CHARGE_AWAKE_STATE,
 #endif
-#ifdef CONFIG_REVERSE_CHARGE
-	POWER_SUPPLY_PROP_REVERSE_CHARGE_MODE,
-#endif
 };
 
 #define DEBUG_ACCESSORY_TEMP_DECIDEGC	250
@@ -2029,11 +2014,6 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 		rc = smblib_get_prop_batt_awake(chg, val);
 		break;
 #endif
-#ifdef CONFIG_REVERSE_CHARGE
-	case POWER_SUPPLY_PROP_REVERSE_CHARGE_MODE:
-		val->intval =  chg->reverse_charge_mode;
-		break;
-#endif
 	case POWER_SUPPLY_PROP_FCC_STEPPER_ENABLE:
 		val->intval = chg->fcc_stepper_enable;
 		break;
@@ -2197,20 +2177,6 @@ static int smb5_batt_set_prop(struct power_supply *psy,
 		}
 		break;
 #endif
-#ifdef CONFIG_REVERSE_CHARGE
-	case POWER_SUPPLY_PROP_REVERSE_CHARGE_MODE:
-		if (val->intval == 0)
-			break;
-		chg->reverse_charge_mode = val->intval;
-		pr_err("longcheer,%s,reverse_charge_mode=%d,reverse_state=%d\n",
-			__func__,chg->reverse_charge_mode,chg->reverse_charge_state);
-		if(chg->reverse_charge_mode != chg->reverse_charge_state){
-			chg->reverse_charge_state = chg->reverse_charge_mode;
-			if(chg->real_charger_type != POWER_SUPPLY_TYPE_USB_PD)
-				rerun_reverse_check(chg);
-		}	
-		break;
-#endif
 	default:
 		rc = -EINVAL;
 	}
@@ -2239,9 +2205,6 @@ static int smb5_batt_prop_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_BATTERY_CHARGING_ENABLED:
 	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
 	case POWER_SUPPLY_PROP_BATTERY_CHARGING_LIMITED:
-#endif
-#ifdef CONFIG_REVERSE_CHARGE
-	case POWER_SUPPLY_PROP_REVERSE_CHARGE_MODE:
 #endif
 		return 1;
 	default:
@@ -3969,113 +3932,6 @@ static int lct_unregister_powermanger(struct smb_charger *chg)
 }
 #endif
 
-#ifdef CONFIG_REVERSE_CHARGE
-#define  BATT_10_BELOW_ZERO_THRESHOLD    (-100)
-#define  BATT_15_THRESHOLD    150
-#define  BATT_50_THRESHOLD    500
-#define  BATT_40_THRESHOLD    400
-#define  BATT_TEMP_HYSTERESIS     10
-#define  OTG_STEP_HYSTERISIS_DELAY_US		5000000 /* 5 secs */
-#define  OTG_WAKELOCK_HOLD_TIME 2000 /* in ms */
-
-static int lct_get_otg_chg_current(int temp)
-{
-	int otg_chg_current_temp = 0;
-
-	if ((temp >= BATT_15_THRESHOLD + BATT_TEMP_HYSTERESIS) && (temp < BATT_40_THRESHOLD - BATT_TEMP_HYSTERESIS)) {
-		otg_chg_current_temp = MICRO_2PA;
-	} else if ((temp > BATT_40_THRESHOLD + BATT_TEMP_HYSTERESIS) && (temp <= BATT_50_THRESHOLD - BATT_TEMP_HYSTERESIS)) {
-		otg_chg_current_temp = MICRO_1P5A;
-	} else if ((temp > BATT_50_THRESHOLD) || ((temp >= BATT_10_BELOW_ZERO_THRESHOLD + BATT_TEMP_HYSTERESIS) && ( temp < BATT_15_THRESHOLD))) {
-		otg_chg_current_temp = MICRO_1PA;
-	} else if (temp < BATT_10_BELOW_ZERO_THRESHOLD) {
-		otg_chg_current_temp = MICRO_P5A;
-	}
-	return otg_chg_current_temp;
-}
-
-static void step_otg_chg_work(struct work_struct *work)
-{
-	struct smb_charger *chg = container_of(work,
-			struct smb_charger, otg_chg_notify_work);
-	int rc = 0;
-	int temp = 0;
-	int otg_chg_current_temp = 0;
-	union power_supply_propval prop = {0, };
-
-
-	rc = smblib_get_prop_from_bms(chg, POWER_SUPPLY_PROP_TEMP, &prop);
-	if (rc < 0) {
-		pr_err("Couldn't read temp rc=%d\n",rc);
-		goto exit_work;
-	}
-
-	temp = prop.intval;
-	pr_err("longcheer ,%s:temp=%d\n",__func__,temp);
-
-	otg_chg_current_temp = lct_get_otg_chg_current(temp);
-
-	if ((otg_chg_current_temp == 0) || (chg->otg_chg_current == otg_chg_current_temp))
-		goto exit_work;
-	else
-		chg->otg_chg_current = otg_chg_current_temp;
-
-	pr_err("longcheer ,%s:otg_chg_current=%d\n",__func__,chg->otg_chg_current);
-
-	rerun_reverse_check(chg);
-
-exit_work:
-	return;
-}
-
-static int step_otg_chg_notifier_call(struct notifier_block *nb,
-			       unsigned long event, void *data)
-{
-	struct smb_charger *chg = container_of(nb, struct smb_charger, otg_step_nb);
-	struct power_supply *psy = data;
-
-	if (event != PSY_EVENT_PROP_CHANGED)
-		return NOTIFY_OK;
-
-	if (!chg->reverse_charge_state)
-		return NOTIFY_OK;
-
-	if ((strcmp(psy->desc->name, "battery") == 0) || (strcmp(psy->desc->name, "usb") == 0)) {
-		__pm_wakeup_event(&chg->step_otg_chg_ws, OTG_WAKELOCK_HOLD_TIME);
-		schedule_work(&chg->otg_chg_notify_work);
-	}
-
-	return NOTIFY_OK;
-}
-
-static int step_otg_chg_register_notifier(struct smb_charger *chg)
-{
-	int rc;
-
-	chg->otg_step_nb.notifier_call = step_otg_chg_notifier_call;
-	rc = power_supply_reg_notifier(&chg->otg_step_nb);
-	if (rc < 0) {
-		pr_err("Couldn't register psy notifier rc = %d\n", rc);
-		return rc;
-	}
-
-	return 0;
-}
-
-static int init_otg_step_chg(struct smb_charger *chg)
-{
-	int rc = 0;
-
-	wakeup_source_init(&chg->step_otg_chg_ws, "lct-step-otg-chg");
-	rc = step_otg_chg_register_notifier(chg);
-	if (rc < 0) {
-		pr_err("Couldn't register psy notifier rc = %d\n", rc);
-	}
-	
-	return rc;
-}
-#endif
-
 static int smb5_show_charger_status(struct smb5 *chip)
 {
 	struct smb_charger *chg = &chip->chg;
@@ -4155,11 +4011,6 @@ static int smb5_probe(struct platform_device *pdev)
 	chg->otg_present = false;
 	chg->main_fcc_max = -EINVAL;
 	mutex_init(&chg->adc_lock);
-#ifdef CONFIG_REVERSE_CHARGE
-	chg->reverse_charge_mode = false;
-	chg->reverse_charge_state = false;
-	chg->otg_chg_current = MICRO_2PA;
-#endif
 
 	chg->regmap = dev_get_regmap(chg->dev->parent, NULL);
 	if (!chg->regmap) {
@@ -4185,24 +4036,6 @@ static int smb5_probe(struct platform_device *pdev)
 				smblib_lpd_recheck_timer);
 	else
 		return -EPROBE_DEFER;
-
-#ifdef CONFIG_REVERSE_CHARGE
-	if (gpio_is_valid(chg->switch_sel_gpio)) {
-		rc = gpio_request(chg->switch_sel_gpio,
-				"mi_switch_sel");
-		if (rc) {
-			chg->switch_sel_gpio = -EINVAL;
-			pr_err("%s: unable to request switch sel gpio [%d]\n",
-					__func__, chg->switch_sel_gpio);
-			
-		} else {
-			gpio_direction_output(chg->switch_sel_gpio, 0);
-		}
-	} else {
-		chg->switch_sel_gpio = -EINVAL;
-		pr_err(	"%s: switch sel not provided\n", __func__);
-	}
-#endif
 
 	rc = smblib_init(chg);
 	if (rc < 0) {
@@ -4357,13 +4190,6 @@ static int smb5_probe(struct platform_device *pdev)
 		goto free_irq;
 	}
 
-#ifdef CONFIG_REVERSE_CHARGE
-	rc = init_otg_step_chg(chg);
-	if (rc < 0) {
-		pr_err("Failed to init otg step chg, rc=%d\n", rc);
-	}
-#endif
-
 	device_init_wakeup(chg->dev, true);
 #ifdef CONFIG_MACH_XIAOMI_MOJITO
 	schedule_delayed_work(&chg->reg_work, 30 * HZ);
@@ -4371,9 +4197,6 @@ static int smb5_probe(struct platform_device *pdev)
 	lct_therm_level.intval = 0;
 	lct_backlight_off = false;
 	INIT_WORK(&chg->fb_notify_work, thermal_fb_notifier_resume_work);
-#if defined(CONFIG_REVERSE_CHARGE)
-	INIT_WORK(&chg->otg_chg_notify_work, step_otg_chg_work);
-#endif
 	/* register suspend and resume fucntion */
 	lct_register_powermanger(chg);
 #endif
@@ -4385,10 +4208,6 @@ static int smb5_probe(struct platform_device *pdev)
 free_irq:
 	smb5_free_interrupts(chg);
 cleanup:
-#ifdef CONFIG_REVERSE_CHARGE
-	if (chg->switch_sel_gpio > 0)
-		gpio_free(chg->switch_sel_gpio);
-#endif
 	smblib_deinit(chg);
 	platform_set_drvdata(pdev, NULL);
 
@@ -4408,20 +4227,12 @@ static int smb5_remove(struct platform_device *pdev)
 
 	lct_unregister_powermanger(chg);
 #endif
-#ifdef CONFIG_REVERSE_CHARGE
-	power_supply_unreg_notifier(&chg->otg_step_nb);
-	wakeup_source_trash(&chg->step_otg_chg_ws);
-#endif
 
 	/* force enable APSD */
 	smblib_masked_write(chg, USBIN_OPTIONS_1_CFG_REG,
 				BC1P2_SRC_DETECT_BIT, BC1P2_SRC_DETECT_BIT);
 
 	smb5_free_interrupts(chg);
-#ifdef CONFIG_REVERSE_CHARGE
-	if (chg->switch_sel_gpio > 0)
-		gpio_free(chg->switch_sel_gpio);
-#endif
 	smblib_deinit(chg);
 	platform_set_drvdata(pdev, NULL);
 	return 0;

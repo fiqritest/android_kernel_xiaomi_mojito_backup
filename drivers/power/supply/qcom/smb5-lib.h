@@ -830,15 +830,6 @@ struct smb_charger {
 	bool			bq_input_suspend;
 
 	bool			hvdcp_recheck_status;
-#if defined(CONFIG_REVERSE_CHARGE)
-	bool        reverse_charge_mode;
-	bool        reverse_charge_state;
-	unsigned int    switch_sel_gpio;
-	struct notifier_block	otg_step_nb;
-	struct work_struct otg_chg_notify_work;
-	struct wakeup_source	step_otg_chg_ws;
-	int otg_chg_current;
-#endif
 	bool   is_float_recheck;
 	int   disable_suspend_on_collapse;
 #endif
@@ -1097,9 +1088,6 @@ int smblib_get_prop_charging_enabled(struct smb_charger *chg,
                 union power_supply_propval *val);
 int smblib_set_prop_battery_charging_enabled(struct smb_charger *chg,
                 const union power_supply_propval *val);
-#if defined(CONFIG_REVERSE_CHARGE)
-void rerun_reverse_check(struct smb_charger *chg);
-#endif
 int smblib_get_prop_batt_awake(struct smb_charger *chg,
 				union power_supply_propval *val);
 #endif

@@ -420,9 +420,6 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_VERIFY_MODEL_NAME,
 	POWER_SUPPLY_PROP_CHIP_OK,
 #endif
-#if defined(CONFIG_REVERSE_CHARGE)
-	POWER_SUPPLY_PROP_REVERSE_CHARGE_MODE,
-#endif
 	POWER_SUPPLY_PROP_CHARGE_AWAKE_STATE,
 #endif
 	/* Local extensions of type int64_t */

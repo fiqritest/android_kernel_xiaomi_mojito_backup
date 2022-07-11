@@ -24,9 +24,6 @@
 #ifdef CONFIG_MACH_XIAOMI_MOJITO
 #include <linux/usb/usbpd.h>
 #endif
-#ifdef CONFIG_REVERSE_CHARGE
-#include <linux/gpio.h>
-#endif
 
 #include "smb5-lib.h"
 #include "smb5-reg.h"
@@ -7473,10 +7470,6 @@ static void typec_sink_removal(struct smb_charger *chg)
 			smblib_notify_usb_host(chg, false);
 		chg->otg_present = false;
 	}
-#ifdef CONFIG_REVERSE_CHARGE
-	chg->reverse_charge_mode = false;
-	chg->reverse_charge_state = false;
-#endif
 }
 
 static void typec_src_removal(struct smb_charger *chg)
@@ -7816,17 +7809,6 @@ irqreturn_t typec_state_change_irq_handler(int irq, void *data)
 			&& (typec_mode != chg->typec_mode))
 		smblib_handle_rp_change(chg, typec_mode);
 	chg->typec_mode = typec_mode;
-
-#ifdef CONFIG_REVERSE_CHARGE
-	if (chg->typec_mode == POWER_SUPPLY_TYPEC_SINK) {
-		if (gpio_is_valid(chg->switch_sel_gpio)) {
-			gpio_set_value(chg->switch_sel_gpio, 0);
-		}
-
-		chg->reverse_charge_mode = false;
-		chg->reverse_charge_state = false;
-	}
-#endif		
 
 	smblib_dbg(chg, PR_INTERRUPT, "IRQ: cc-state-change; Type-C %s detected\n",
 				smblib_typec_mode_name[chg->typec_mode]);
@@ -9459,67 +9441,6 @@ static void smblib_dual_role_check_work(struct work_struct *work)
 	mutex_unlock(&chg->dr_lock);
 	vote(chg->awake_votable, DR_SWAP_VOTER, false, 0);
 }
-
-#ifdef CONFIG_REVERSE_CHARGE
-static void lct_vbus_enable(struct smb_charger *chg, bool enable)
-{
-	int rc = 0;
-
-	if (enable) {
-		smblib_dbg(chg, PR_OTG, "enabling VBUS in OTG mode\n");
-		rc = smblib_masked_write(chg, DCDC_CMD_OTG_REG,
-					OTG_EN_BIT, OTG_EN_BIT);
-		if (rc < 0) {
-			smblib_err(chg,
-				"Couldn't enable VBUS in OTG mode rc=%d\n", rc);
-			return;
-		}
-
-	} else {
-		smblib_dbg(chg, PR_OTG, "disabling VBUS in OTG mode\n");
-		rc = smblib_masked_write(chg, DCDC_CMD_OTG_REG,
-					OTG_EN_BIT, 0);
-		if (rc < 0) {
-			smblib_err(chg,
-				"Couldn't disable VBUS in OTG mode rc=%d\n",
-				rc);
-			return;
-		}
-	}
-}
-
-void rerun_reverse_check(struct smb_charger *chg)
-{
-	int rc;
-	if(chg->reverse_charge_state != chg->reverse_charge_mode)
-		chg->reverse_charge_state = chg->reverse_charge_mode;
-
-	lct_vbus_enable(chg, false);
-
-	rc = smblib_set_charge_param(chg, &chg->param.otg_cl, chg->otg_chg_current);
-	if (rc < 0) {
-		pr_err("Couldn't set otg current limit rc=%d\n", rc);
-	}
-
-	if (chg->real_charger_type != POWER_SUPPLY_TYPE_USB_PD) {
-		if (chg->reverse_charge_mode &&(chg->typec_mode == POWER_SUPPLY_TYPEC_SINK)) {
-			if (gpio_is_valid(chg->switch_sel_gpio)) {
-				gpio_set_value(chg->switch_sel_gpio, 1);
-			}
-		} else {
-			if (gpio_is_valid(chg->switch_sel_gpio)){
-				gpio_set_value(chg->switch_sel_gpio, 0);
-			}
-		}
-	}
-
-
-	msleep(500);
-
-	lct_vbus_enable(chg, true);
-
-}
-#endif
 
 #ifdef CONFIG_MACH_XIAOMI_MOJITO
 static void smblib_charger_type_recheck(struct work_struct *work)
