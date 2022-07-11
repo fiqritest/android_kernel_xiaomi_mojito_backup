@@ -133,103 +133,103 @@
 * Private enumerations, structures and unions using typedef
 *****************************************************************************/
 struct ftxxxx_proc {
-    struct proc_dir_entry *proc_entry;
-    u8 opmode;
-    u8 cmd_len;
-    u8 cmd[FTX_MAX_COMMMAND_LENGTH];
+	struct proc_dir_entry *proc_entry;
+	u8 opmode;
+	u8 cmd_len;
+	u8 cmd[FTX_MAX_COMMMAND_LENGTH];
 };
 
 struct fts_ts_platform_data {
 	u32 avdd_gpio;
 	u32 avdd_gpio_flags;
-    u32 irq_gpio;
-    u32 irq_gpio_flags;
-    u32 reset_gpio;
-    u32 reset_gpio_flags;
-    bool have_key;
-    u32 key_number;
-    u32 keys[FTS_MAX_KEYS];
-    u32 key_y_coords[FTS_MAX_KEYS];
-    u32 key_x_coords[FTS_MAX_KEYS];
-    u32 x_max;
-    u32 y_max;
-    u32 x_min;
-    u32 y_min;
-    u32 max_touch_number;
+	u32 irq_gpio;
+	u32 irq_gpio_flags;
+	u32 reset_gpio;
+	u32 reset_gpio_flags;
+	bool have_key;
+	u32 key_number;
+	u32 keys[FTS_MAX_KEYS];
+	u32 key_y_coords[FTS_MAX_KEYS];
+	u32 key_x_coords[FTS_MAX_KEYS];
+	u32 x_max;
+	u32 y_max;
+	u32 x_min;
+	u32 y_min;
+	u32 max_touch_number;
 };
 
 struct ts_event {
-    int x;      /*x coordinate */
-    int y;      /*y coordinate */
-    int p;      /* pressure */
-    int flag;   /* touch event flag: 0 -- down; 1-- up; 2 -- contact */
-    int id;     /*touch ID */
-    int area;
+	int x;      /*x coordinate */
+	int y;      /*y coordinate */
+	int p;      /* pressure */
+	int flag;   /* touch event flag: 0 -- down; 1-- up; 2 -- contact */
+	int id;     /*touch ID */
+	int area;
 };
 
 struct fts_ts_data {
 	struct fts_upgrade *upg;
-    struct i2c_client *client;
-    struct spi_device *spi;
-    struct device *dev;
-    struct input_dev *input_dev;
-    struct fts_ts_platform_data *pdata;
-    struct ts_ic_info ic_info;
-    struct workqueue_struct *ts_workqueue;
-    struct work_struct fwupg_work;
-    struct delayed_work esdcheck_work;
-    struct delayed_work prc_work;
-    struct work_struct resume_work;
-    struct ftxxxx_proc proc;
-    spinlock_t irq_lock;
-    struct mutex report_mutex;
-    struct mutex bus_lock;
-    int irq;
-    int log_level;
-    int fw_is_running;      /* confirm fw is running when using spi:default 0 */
-    int dummy_byte;
+	struct i2c_client *client;
+	struct spi_device *spi;
+	struct device *dev;
+	struct input_dev *input_dev;
+	struct fts_ts_platform_data *pdata;
+	struct ts_ic_info ic_info;
+	struct workqueue_struct *ts_workqueue;
+	struct work_struct fwupg_work;
+	struct delayed_work esdcheck_work;
+	struct delayed_work prc_work;
+	struct work_struct resume_work;
+	struct ftxxxx_proc proc;
+	spinlock_t irq_lock;
+	struct mutex report_mutex;
+	struct mutex bus_lock;
+	int irq;
+	int log_level;
+	int fw_is_running;      /* confirm fw is running when using spi:default 0 */
+	int dummy_byte;
 #if defined(CONFIG_PM) && FTS_PATCH_COMERR_PM
-    struct completion pm_completion;
-    bool pm_suspend;
+	struct completion pm_completion;
+	bool pm_suspend;
 #endif
-    bool suspended;
-    bool fw_loading;
-    bool irq_disabled;
-    bool power_disabled;
-    bool glove_mode;
-    bool cover_mode;
-    bool charger_mode;
-    bool gesture_mode;      /* gesture enable or disable, default: disable */
-    bool aod_changed;
-    /* multi-touch */
-    struct ts_event *events;
-    u8 *bus_tx_buf;
-    u8 *bus_rx_buf;
-    int bus_type;
-    u8 *point_buf;
-    int pnt_buf_size;
-    int touchs;
-    int key_state;
-    int touch_point;
-    int point_num;
-    struct regulator *vdd;
-    struct regulator *vcc_i2c;
+	bool suspended;
+	bool fw_loading;
+	bool irq_disabled;
+	bool power_disabled;
+	bool glove_mode;
+	bool cover_mode;
+	bool charger_mode;
+	bool gesture_mode;      /* gesture enable or disable, default: disable */
+	bool aod_changed;
+	/* multi-touch */
+	struct ts_event *events;
+	u8 *bus_tx_buf;
+	u8 *bus_rx_buf;
+	int bus_type;
+	u8 *point_buf;
+	int pnt_buf_size;
+	int touchs;
+	int key_state;
+	int touch_point;
+	int point_num;
+	struct regulator *vdd;
+	struct regulator *vcc_i2c;
 #if FTS_PINCTRL_EN
-    struct pinctrl *pinctrl;
-    struct pinctrl_state *pins_active;
-    struct pinctrl_state *pins_suspend;
-    struct pinctrl_state *pins_release;
+	struct pinctrl *pinctrl;
+	struct pinctrl_state *pins_active;
+	struct pinctrl_state *pins_suspend;
+	struct pinctrl_state *pins_release;
 #endif
 #if defined(CONFIG_FB) || defined(CONFIG_DRM)
-    struct notifier_block fb_notif;
+	struct notifier_block fb_notif;
 #elif defined(CONFIG_HAS_EARLYSUSPEND)
-    struct early_suspend early_suspend;
+	struct early_suspend early_suspend;
 #endif
 
 #ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-    u8 palm_sensor_switch;
-    bool palm_sensor_changed;
-    bool gamemode_enabled;
+	u8 palm_sensor_switch;
+	bool palm_sensor_changed;
+	bool gamemode_enabled;
 #endif
 	struct mutex reg_lock;
 	struct device *fts_touch_dev;
@@ -237,10 +237,10 @@ struct fts_ts_data {
 };
 
 enum _FTS_BUS_TYPE {
-    BUS_TYPE_NONE,
-    BUS_TYPE_I2C,
-    BUS_TYPE_SPI,
-    BUS_TYPE_SPI_V2,
+	BUS_TYPE_NONE,
+	BUS_TYPE_I2C,
+	BUS_TYPE_SPI,
+	BUS_TYPE_SPI_V2,
 };
 
 /*****************************************************************************
