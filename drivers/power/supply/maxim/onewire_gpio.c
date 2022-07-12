@@ -101,30 +101,15 @@ unsigned char read_bit(void)
 
 	ONE_WIRE_CONFIG_OUT;
 	ONE_WIRE_OUT_LOW;
-#ifndef CONFIG_MACH_XIAOMI_MOJITO
-	udelay(1);
-#endif
 	ONE_WIRE_CONFIG_IN;
-#ifndef CONFIG_MACH_XIAOMI_MOJITO
-	ndelay(500);
-#endif
 	vamm = readl_relaxed(g_onewire_data->gpio_in_out_reg); // Read
-#ifdef CONFIG_MACH_XIAOMI_MOJITO
 	udelay(15);
-#else
-	udelay(5);
-	ONE_WIRE_OUT_HIGH;
-	ONE_WIRE_CONFIG_OUT;
-	udelay(6);
-#endif
 	return((unsigned char)vamm & 0x01);
 }
 
 void write_bit(char bitval)
 {
-#ifdef CONFIG_MACH_XIAOMI_MOJITO
 	ONE_WIRE_CONFIG_OUT;
-#endif
 	ONE_WIRE_OUT_LOW;
 	udelay(1);//
 	if (bitval != 0)
