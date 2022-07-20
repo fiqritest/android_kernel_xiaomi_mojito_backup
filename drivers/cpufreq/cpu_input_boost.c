@@ -82,7 +82,7 @@ static unsigned int get_min_freq(struct cpufreq_policy *policy)
 	else
 		freq = CONFIG_MIN_FREQ_PERF;
 
-	return min(freq, policy->max);
+	return max(freq, policy->min);
 }
 
 static unsigned int get_max_boost_freq(struct cpufreq_policy *policy)
