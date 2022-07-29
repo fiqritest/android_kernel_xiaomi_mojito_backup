@@ -8,7 +8,7 @@
 wm97xx-ts-y := wm97xx-core.o
 
 obj-$(CONFIG_XIAOMI_COMMON_TOUCHSCREEN)	+= xiaomi/
-obj-$(CONFIG_TOUCHSCREEN_FTS)	+= ft3418_i2c/
+obj-$(CONFIG_TOUCHSCREEN_FT3418_I2C)	+= ft3418_i2c/
 obj-$(CONFIG_TOUCHSCREEN_PROPERTIES)	+= of_touchscreen.o
 obj-$(CONFIG_TOUCHSCREEN_88PM860X)	+= 88pm860x-ts.o
 obj-$(CONFIG_TOUCHSCREEN_AD7877)	+= ad7877.o

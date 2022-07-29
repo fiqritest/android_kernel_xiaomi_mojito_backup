@@ -2,15 +2,15 @@
 # Focaltech Touchscreen driver configuration
 #
 
-config TOUCHSCREEN_FTS
-    bool "Focaltech Touchscreen"
+config TOUCHSCREEN_FT3418_I2C
+    bool "Focaltech Touchscreen for mojito"
     default y
     help
       Say Y here if you have Focaltech touch panel.
       If unsure, say N.
       
-config TOUCHSCREEN_FTS_DIRECTORY
+config TOUCHSCREEN_FT3418_I2C_DIRECTORY
     string "Focaltech ts directory name"
-    default "focaltech_touch"
-    depends on TOUCHSCREEN_FTS
+    default "focaltech_touch_ft3418_i2c"
+    depends on TOUCHSCREEN_FT3418_I2C
     
